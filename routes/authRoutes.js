@@ -40,32 +40,68 @@ async function mailer(recieveremail, code) {
 }
 
 router.post('/verify', (req, res) => {
-    // console.log(req.body);
+    console.log('sent by client', req.body);
     const { email } = req.body;
 
     if (!email) {
         return res.status(422).json({ error: "Please add all the fields" });
     }
-    else {
-        User.findOne({ email: email })
-            .then(async (savedUser) => {
-                // console.log(savedUser);
-                // return res.status(200).json({ message: "Email sent" });
-                if (savedUser) {
-                    return res.status(422).json({ error: "Invalid Credentials" });
-                }
-                try {
-                    let VerificationCode = Math.floor(100000 + Math.random() * 900000);
-                    await mailer(email, VerificationCode);
 
-                    return res.status(200).json({ message: "Email sent", VerificationCode, email });
-                }
-                catch (err) {
-                    return res.status(422).json({ error: "Error sending email" });
-                }
-            })
-        // return res.status(200).json({ message: "Email sent" });
+    User.findOne({ email: email }).then(async (savedUser) => {
+        if (savedUser) {
+            return res.status(422).json({ error: "Invalid Credentials" });
+        }
+        try {
+            let VerificationCode = Math.floor(100000 + Math.random() * 900000);
+            await mailer(email, VerificationCode);
+            console.log("Verification Code", VerificationCode);
+            res.send({ message: "Verification Code Sent to your Email", VerificationCode, email });
+        }
+        catch (err) {
+            console.log(err);
+        }
+    }
+    )
+})
+
+
+router.post('/changeusername', (req, res) => {
+    const { username, email } = req.body;
+
+    User.find({ username }).then(async (savedUser) => {
+        if (savedUser.length > 0) {
+            return res.status(422).json({ error: "Username already exists" });
+        }
+        else {
+            return res.status(200).json({ message: "Username Available", username, email });
+        }
+    })
+})
+
+router.post('/signup', async (req, res) => {
+    const { username, password, email } = req.body;
+    if (!username || !password || !email) {
+        return res.status(422).json({ error: "Please add all the fields" });
+    }
+    else {
+        const user = new User({
+            username,
+            email,
+            password,
+        })
+
+        try {
+            await user.save();
+            const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
+            return res.status(200).json({ message: "User Registered Successfully", token });
+
+        }
+        catch (err) {
+            console.log(err);
+            return res.status(422).json({ error: "User Not Registered" });
+        }
     }
 })
+
 
 module.exports = router;
