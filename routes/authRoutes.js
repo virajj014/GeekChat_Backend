@@ -201,6 +201,86 @@ router.post('/signin', (req, res) => {
     }
 })
 
+//userdata
+
+// router.post('/otheruserdata', (req, res) => {
+//     const { email } = req.body;
+
+//     User.findOne({ email: email })
+//         .then(savedUser => {
+//             if (!savedUser) {
+//                 return res.status(422).json({ error: "Invalid Credentials" });
+//             }
+//             else {
+//                 console.log(savedUser);
+//                 res.status(200).json({ message: "User Found", user: savedUser });
+//             }
+//         })
+// })
+
+
+router.post('/userdata', (req, res) => {
+    const { authorization } = req.headers;
+    //    authorization = "Bearer afasgsdgsdgdafas"
+    if (!authorization) {
+        return res.status(401).json({ error: "You must be logged in, token not given" });
+    }
+    const token = authorization.replace("Bearer ", "");
+    console.log(token);
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, payload) => {
+        if (err) {
+            return res.status(401).json({ error: "You must be logged in, token invalid" });
+        }
+        const { _id } = payload;
+        User.findById(_id).then(userdata => {
+            res.status(200).send({
+                message: "User Found",
+                user: userdata
+            });
+        })
+
+    })
+})
+
+// change password
+router.post('/changepassword', (req, res) => {
+    const { oldpassword, newpassword, email } = req.body;
+
+    if (!oldpassword || !newpassword || !email) {
+        return res.status(422).json({ error: "Please add all the fields" });
+    }
+    else {
+        User.findOne({ email: email })
+            .then(async savedUser => {
+                if (savedUser) {
+                    bcrypt.compare(oldpassword, savedUser.password)
+                        .then(doMatch => {
+                            if (doMatch) {
+                                savedUser.password = newpassword;
+                                savedUser.save()
+                                    .then(user => {
+                                        res.json({ message: "Password Changed Successfully" });
+                                    })
+                                    .catch(err => {
+                                        // console.log(err);
+                                        return res.status(422).json({ error: "Server Error" });
+
+                                    })
+                            }
+                            else {
+                                return res.status(422).json({ error: "Invalid Credentials" });
+                            }
+                        })
+
+                }
+                else {
+                    return res.status(422).json({ error: "Invalid Credentials" });
+                }
+            })
+    }
+})
+
 module.exports = router;
 
 
