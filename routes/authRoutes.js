@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
+const { request } = require('express');
 
 
 // router.get('/home', (req, res) => {
@@ -342,6 +343,76 @@ router.post('/setdescription', (req, res) => {
             else {
                 return res.status(422).json({ error: "Invalid Credentials" });
             }
+        })
+})
+
+
+// get searched user by keyword
+
+router.post('/searchuser', (req, res) => {
+    const { keyword } = req.body;
+
+    if (!keyword) {
+        return res.status(422).json({ error: "Please search a username" });
+    }
+
+    User.find({ username: { $regex: keyword, $options: 'i' } })
+        .then(user => {
+            // console.log(user);
+            let data = [];
+            user.map(item => {
+                data.push(
+                    {
+                        _id: item._id,
+                        username: item.username,
+                        email: item.email,
+                        description: item.description,
+                        profilepic: item.profilepic
+                    }
+                )
+            })
+
+            console.log(data);
+            if (data.length == 0) {
+                return res.status(422).json({ error: "No User Found" });
+            }
+            res.status(200).send({ message: "User Found", user: data });
+
+        })
+        .catch(err => {
+            res.status(422).json({ error: "Server Error" });
+        })
+})
+
+// get other user 
+
+router.post('/otheruserdata', (req, res) => {
+    const { email } = req.body;
+
+    User.findOne({ email: email })
+        .then(saveduser => {
+            if (!saveduser) {
+                return res.status(422).json({ error: "Invalid Credentials" });
+            }
+            //    console.log(saveduser);
+
+            let data = {
+                _id: saveduser._id,
+                username: saveduser.username,
+                email: saveduser.email,
+                description: saveduser.description,
+                profilepic: saveduser.profilepic,
+                followers: saveduser.followers,
+                following: saveduser.following,
+                posts: saveduser.posts
+            }
+
+            // console.log(data);
+
+            res.status(200).send({
+                user: data,
+                message: "User Found"
+            })
         })
 })
 
