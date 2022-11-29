@@ -36,6 +36,10 @@ const userSchema = new mongoose.Schema({
     description: {
         type: String,
         default: ''
+    },
+    allmessages: {
+        type: Array,
+        default: []
     }
 })
 
